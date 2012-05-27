@@ -25,7 +25,7 @@ import common._
 import util._
 
 
-object TextileSpec extends Specification {
+class TextileSpec extends Specification {
 
   val shouldRelax = (java.lang.Boolean.getBoolean("textile.relax"))
 
