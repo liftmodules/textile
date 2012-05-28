@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.liftweb {
+package net.liftmodules {
 package textile {
 
 import _root_.scala.util.parsing.combinator.{Parsers, ImplicitConversions}

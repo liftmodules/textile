@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package net.liftweb
+package net.liftmodules
 package textile
 
 import xml._
 
 import org.specs.Specification
 
+import net.liftweb._
 import common._
 import util._
 
