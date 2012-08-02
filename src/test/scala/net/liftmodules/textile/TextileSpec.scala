@@ -66,6 +66,47 @@ class TextileSpec extends Specification {
       toHtml("*foo* __bar__") must ==/(<p><strong>foo</strong> <i>bar</i></p> )
     }
 
+    "deal with blockquotes" in {
+      toHtml("bq. foo bar") must ==/(<blockquote><p>foo bar</p></blockquote>)
+    }
+    
+    "not trait 'bq' characters without a dot as blockquote" in {
+      toHtml("bq bw be") must ==/(<p>bq bw be</p>)
+    }
+
+    "deal with preformatted blocks" in {
+      toHtml("<pre>\n  foo\n  bar\n</pre>") must ==/(<pre>{"\n foo\n  bar\n"}</pre>)
+    }
+
+    "deal with preformatted blocks with attributes" in {
+      toHtml("<pre class='foo'>foo bar</pre>") must ==/(<pre class="foo">foo bar</pre>)
+      toHtml("<pre onclick='runXss()'>foo bar</pre>") must ==/(<pre>foo bar</pre>)
+    }
+
+    "deal with short blocks of code" in {
+      val res = toHtml("bc. var a = 0\nvar b = a + 1\n\nvar c = 3")
+      res must ==/(<pre><code>{"var a = 0\nvar b = a + 1"}</code></pre><p>var c = 3</p>)
+    }
+
+    "deal with short blocks of code with attributes" in {
+      val styledRes = toHtml("bc(haskell). main = getLine >> putStrLn")
+      styledRes must ==/(<pre class="haskell"><code class="haskell">main = getLine >> putStrLn</code></pre>)
+    }
+
+    "deal with simple paragraphs and code blocks interchanged" in {
+      val res = toHtml("p. Para1\n\nbc. Code block\n\np. Para2")
+      res must ==/(<p>Para1</p><pre><code>Code block</code></pre><p>Para2</p>)
+    }
+
+    "deal with code block embedded into pre block" in {
+      toHtml("<pre><code class=\"haskell\"  >let x = 5</code></pre>") must ==/(<pre><code class="haskell">let x = 5</code></pre>)
+      toHtml("<pre><code>\nx = 5\n</code></pre>") must ==/(<pre><code>{"\nx = 5\n"}</code></pre>)
+    }
+
+    "not trait 'bc' characters without a dot as block of code" in {
+      toHtml("bc bv bb") must ==/(<p>bc bv bb</p>)
+    }
+
     "attributes in link quotes" in {
       val res = toHtml(""""(cms-woof) click here":# """)
      res must ==/(<p><a href="javascript://" class="cms-woof"> click here</a> </p>)
