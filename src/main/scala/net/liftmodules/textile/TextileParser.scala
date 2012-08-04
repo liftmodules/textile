@@ -441,15 +441,20 @@ object TextileParser {
      */
     lazy val preEndOfLine: Parser[Textile] = (('\r' ~ '\n') | '\n') ^^^ CharBlock("\n")
 
+    lazy val codeBlock : Parser[Textile] = accept("<code") ~> rep(tag_attr) ~ (rep(' ') ~> '>' ~>
+    rep(not(accept("</code")) ~> (preEndOfLine | charBlock))) <~ closingTag("code") ^^ {
+      case attrs ~ elms => HTML("code", reduceCharBlocks(elms), attrs)
+    }
 
     /**
-     * a &lt;pre&gt; block.  Just send text of through, unmolested.
+     * a &lt;pre&gt; block.  Try recognize nested &lt;code&gt; block or leave content untouched
      */
     lazy val preBlock: Parser[Textile] =
-    beginlS ~> accept("<pre") ~> rep(' ') ~> '>' ~>
-    rep(not(accept("</pre")) ~> (preEndOfLine | charBlock )) <~
-    accept("</pre") <~ rep(' ') <~ '>' <~ rep(' ') <~ '\n' ^^ {
-      case elms => Pre(reduceCharBlocks(elms), Nil)
+    beginlS ~> accept("<pre") ~> rep(tag_attr) ~ (rep(' ') ~> '>' ~>
+    (codeBlock | rep(not(accept("</pre")) ~> (preEndOfLine | charBlock)))) <~
+    closingTag("pre") <~ rep(' ') <~ '\n' ^^ {
+      case attrs ~ (code: HTML) => Pre(code :: Nil, attrs)
+      case attrs ~ (elms: List[Textile]) => Pre(reduceCharBlocks(elms), attrs)
     }
 
     /**
@@ -700,6 +705,12 @@ object TextileParser {
     lazy val blockquote : Parser[Textile] = (beginl ~> accept("bq") ~> rep(para_attribute)) ~ (accept(". ") ~> rep1(not_blank_line) <~ blankLine) ^^ {
       case attrs ~ ln => BlockQuote(reduceCharBlocks(ln), attrs)}
 
+    lazy val codeWithoutBlankLines : Parser[List[Textile]] = rep(rep1(charBlock) ~ preEndOfLine) ^^ {
+      lines => lines.flatMap { case chars ~ endl => reduceCharBlocks(chars :+ endl)}}
+
+    lazy val blockCode : Parser[Textile] = (beginl ~> accept("bc") ~> rep(para_attribute)) ~ (accept(". ") ~> codeWithoutBlankLines <~ blankLine) ^^ {
+      case attrs ~ blocks => BlockCode(blocks, attrs)
+    }
 
     lazy val footnote : Parser[Textile] = (beginl ~> accept("fn") ~> num) ~ rep(para_attribute) ~ (accept(". ") ~> rep1(not_blank_line) <~ blankLine) ^^ {
       case dr ~ attrs ~ ln => Footnote(reduceCharBlocks(ln), attrs, dr)}
@@ -735,7 +746,7 @@ object TextileParser {
       case td ~ el => TableElement(reduceCharBlocks(el), isHeader, td.map(_.attrs) getOrElse Nil)}
 
     lazy val paragraph : Parser[Textile] =
-    preBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | head_line | blankPara | normPara
+    preBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | blankPara | normPara
   }
 
 
@@ -965,17 +976,28 @@ object TextileParser {
     }
   }
 
-  val validAttributes = List(/*"class", */ "title", /*"style", "dir",*/ "lang")
+  case class BlockCode(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
+    override def toHtml : NodeSeq = {
+      val attributes = fromStyle(attrs)
+      val contents = flattenAndDropLastEOL(elems)
+      val code = XmlElem(null, "code", attributes, TopScope, contents : _*)
+      XmlElem(null, "pre", attributes, TopScope, code : _*) ++ Text("\n")
+    }
+  }
+
+  private val validAttributes = Set("title", "lang")
+  private val attrExtensions = Map("code" -> Set("class"), "pre" -> Set("class"))
+  private def validHtmlAttr(tag: String, in: Attribute): Boolean = in match {
+    case AnyAttribute(name, _) => validAttributes.contains(name) || attrExtensions.contains(tag) && attrExtensions(tag).contains(name)
+    case _ => false
+  }
 
   case class HTML(tag : String, elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
-    def validAttr(in: Attribute): Boolean = in match {
-      case AnyAttribute(name, _) => validAttributes.contains(name)
-      case _ => false
-    }
-
     override def toHtml : NodeSeq = {
-      XmlElem(null, tag, fromStyle(attrs.filter(validAttr)), TopScope, flattenAndDropLastEOL(elems) : _*)
-    }}
+      XmlElem(null, tag, fromStyle(attrs.filter(validHtmlAttr(tag, _))), TopScope, flattenAndDropLastEOL(elems) : _*)
+    }
+  }
+
   case class FootnoteDef(num : String) extends ATextile(null, Nil) {
     override def toHtml : NodeSeq = {
       XmlElem(null, "sup", Null, TopScope,
@@ -1071,7 +1093,7 @@ object TextileParser {
   }
 
   case class Pre(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
-    override def toHtml : NodeSeq = XmlElem(null, "pre", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+    override def toHtml : NodeSeq = XmlElem(null, "pre", fromStyle(attrs.filter(validHtmlAttr("pre", _))), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
   }
 
   case class Anchor(elems : List[Textile], href : String, alt : String, attrs : List[Attribute], disableLinks: Boolean) extends ATextile(elems, attrs) {
