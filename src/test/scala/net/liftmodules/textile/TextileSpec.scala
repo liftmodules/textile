@@ -88,6 +88,17 @@ class TextileSpec extends Specification {
       toHtml("p(foo bar). bar") must ==/(<p class="foo bar">bar</p>)
     }
 
+    "deal with styles" in {
+      toHtml("p{color:red;}. bar") must ==/(<p style="color:red;">bar</p>)
+      toHtml("p{color:red}. bar") must ==/(<p style="color:red;">bar</p>)
+      toHtml("p{font-weight:bold;color:yellow;}. bar") must ==/(<p style="font-weight:bold;color:yellow;">bar</p>)
+      toHtml("p{font-weight:bold; border: 1px solid black}. bar") must ==/(<p style="font-weight:bold; border: 1px solid black;">bar</p>)
+    }
+
+    "deal with languages" in {
+      toHtml("p[de]. bar") must ==/(<p lang="de">bar</p>)
+    }
+
     "deal with short blocks of code" in {
       val res = toHtml("bc. var a = 0\nvar b = a + 1\n\nvar c = 3")
       res must ==/(<pre><code>{"var a = 0\nvar b = a + 1"}</code></pre><p>var c = 3</p>)

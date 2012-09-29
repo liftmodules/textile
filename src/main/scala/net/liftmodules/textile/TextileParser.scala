@@ -465,7 +465,7 @@ object TextileParser {
 
 
     def validTagChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '_'
-    def validStyleChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '.' || c == ' ' || c == ';' || c == '#'
+    def validStyleChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '.' || c == ' ' || c == '-' || c == '#'
     def validClassChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '.' || c == '-' || c == '_' || c == ' '
 
     lazy val validTag =
@@ -630,7 +630,7 @@ object TextileParser {
     lazy val the_class : Parser[Attribute] = '(' ~> str1("class", validClassChar) <~ ')' ^^ {rc => ClassAndId(rc, null)}
 
 
-    lazy val style : Parser[Attribute] = '{' ~> repsep(styleElem, ';') <~ '}' ^^ Style
+    lazy val style : Parser[Attribute] = '{' ~> repsep(styleElem, ';') <~ ';'.? <~ '}' ^^ Style
 
     lazy val span : Parser[Textile] = formattedLineElem('%', opt(style) ^^ {s => s.toList}) ^^ flatten4(Special * "span")
 
@@ -757,7 +757,10 @@ object TextileParser {
 
   case class Style(elms : List[StyleElem]) extends Attribute {
     def name(which : Int) : String = "style"
-    def value(which : Int) : String = elms.mkString("",";","")
+    def value(which : Int) : String = {
+      val s = elms.mkString("",";","")
+      if (!s.endsWith(";")) s+";" else s
+    }
   }
 
   abstract class Attribute extends Textile {
