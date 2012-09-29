@@ -74,6 +74,10 @@ class TextileSpec extends Specification {
       toHtml("bq bw be") must ==/(<p>bq bw be</p>)
     }
 
+    "deal with divs" in {
+      toHtml("div[de](pull-left). foo\nbar\n\npara") must ==/(<div class="pull-left" lang="de">foo<br />bar</div> ++ <p>para</p>)
+    }
+
     "deal with preformatted blocks" in {
       toHtml("<pre>\n  foo\n  bar\n</pre>") must ==/(<pre>{"\n foo\n  bar\n"}</pre>)
     }

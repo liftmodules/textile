@@ -705,6 +705,9 @@ object TextileParser {
     lazy val blockquote : Parser[Textile] = (beginl ~> accept("bq") ~> rep(para_attribute)) ~ (accept(". ") ~> rep1(not_blank_line) <~ blankLine) ^^ {
       case attrs ~ ln => BlockQuote(reduceCharBlocks(ln), attrs)}
 
+    lazy val div : Parser[Textile] = (beginl ~> accept("div") ~> rep(para_attribute)) ~ (accept(". ") ~> rep1(not_blank_line) <~ blankLine) ^^ {
+      case attrs ~ ln => Div(reduceCharBlocks(ln), attrs)}
+
     lazy val codeWithoutBlankLines : Parser[List[Textile]] = rep(rep1(charBlock) ~ preEndOfLine) ^^ {
       lines => lines.flatMap { case chars ~ endl => reduceCharBlocks(chars :+ endl)}}
 
@@ -746,7 +749,7 @@ object TextileParser {
       case td ~ el => TableElement(reduceCharBlocks(el), isHeader, td.map(_.attrs) getOrElse Nil)}
 
     lazy val paragraph : Parser[Textile] =
-    preBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | blankPara | normPara
+    preBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | div | blankPara | normPara
   }
 
 
@@ -976,6 +979,12 @@ object TextileParser {
     override def toHtml : NodeSeq = {
       val par : NodeSeq = XmlElem(null, "p", Null, TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
       XmlElem(null, "blockquote", fromStyle(attrs), TopScope, par : _*)  ++ Text("\n")
+    }
+  }
+
+  case class Div(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
+    override def toHtml : NodeSeq = {
+      XmlElem(null, "div", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*)  ++ Text("\n")
     }
   }
 
