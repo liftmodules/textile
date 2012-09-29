@@ -83,6 +83,11 @@ class TextileSpec extends Specification {
       toHtml("<pre onclick='runXss()'>foo bar</pre>") must ==/(<pre>foo bar</pre>)
     }
 
+    "deal with classes" in {
+      toHtml("p(foo). bar") must ==/(<p class="foo">bar</p>)
+      toHtml("p(foo bar). bar") must ==/(<p class="foo bar">bar</p>)
+    }
+
     "deal with short blocks of code" in {
       val res = toHtml("bc. var a = 0\nvar b = a + 1\n\nvar c = 3")
       res must ==/(<pre><code>{"var a = 0\nvar b = a + 1"}</code></pre><p>var c = 3</p>)

@@ -466,7 +466,7 @@ object TextileParser {
 
     def validTagChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '_'
     def validStyleChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '.' || c == ' ' || c == ';' || c == '#'
-    def validClassChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '.' || c == '-' || c == '_'
+    def validClassChar(c: Char) = Character.isDigit(c) || Character.isLetter(c) || c == '.' || c == '-' || c == '_' || c == ' '
 
     lazy val validTag =
     rep1(elem("valid tag character", validTagChar)) ^^
