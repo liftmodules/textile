@@ -40,20 +40,20 @@ class TextileSpec extends Specification {
     "deal with multi-line div" in {
       val div =
 """<div class="vcard">
-   <div class="fn">Joe Doe</div>
-   <div class="org">The Example Company</div>
-   <div class="tel">604-555-1234</div>
-   http://example.com/
- </div>"""
+<div class="fn">Joe Doe</div>
+<div class="org">The Example Company</div>
+<div class="tel">604-555-1234</div>
+http://example.com/
+</div>"""
 
       val res = toHtml(div)
 
-      res must ==/(<p><div class="vcard">
-   <div class="fn">Joe Doe</div>
-   <div class="org">The Example Company</div>
-   <div class="tel">604-555-1234</div>
-   <a href="http://example.com/">http://example.com/</a>
- </div></p>)
+      res must ==/(<div class="vcard">
+   <div class="fn"><p>Joe Doe</p></div>
+   <div class="org"><p>The Example Company</p></div>
+   <div class="tel"><p>604-555-1234</p></div>
+   <p><a href="http://example.com/">http://example.com/</a></p>
+ </div>)
     }
 
 

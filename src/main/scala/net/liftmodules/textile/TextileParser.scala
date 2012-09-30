@@ -462,9 +462,9 @@ object TextileParser {
      */
     lazy val divBlock: Parser[Textile] = {
       beginlS ~> accept("<div") ~> rep(tag_attr) ~ (rep(' ') ~> '>' ~> rep(preEndOfLine | ' ') ~>
-      rep(not(accept("</div")) ~> (paragraph))) <~
+      (rep(not(accept("</div")) ~> paragraph(Some("div", false))) ~ opt(paragraph(Some("div", true)))) ) <~
       closingTag("div") <~ rep(' ') <~ '\n' ^^ {
-        case attrs ~ elms => Div(reduceCharBlocks(elms), attrs.filter(validHtmlAttr("div", _)))
+        case attrs ~ (elms ~ endElm) => Div(reduceCharBlocks(if (endElm.isEmpty) elms else elms :+ endElm.get), attrs.filter(validHtmlAttr("div", _)))
       }
     }
 
@@ -731,8 +731,26 @@ object TextileParser {
 
     lazy val first_paraAttrs : Parser[TableDef] = beginlS ~> 'p' ~> rep(para_attribute) <~ '.' ^^ TableDef
 
-    lazy val normPara : Parser[Textile] = opt(first_paraAttrs) ~ rep1(bullet(0, false) | bullet(0, true) | not_blank_line) ~ blankLine ^^ {
-      case td ~ fp ~ _ => Paragraph(reduceCharBlocks(fp), td.map(_.attrs) getOrElse(Nil))
+    def normPara(endTag: Option[(String, Boolean)]) : Parser[Textile] = {
+      endTag match {
+        case Some((tag, last)) if last =>
+          // last paragraph before the closing tag (ends with </tag>)
+          val valid = not(closingTag(tag)) ~> not(blankLine) ~> lineElem
+          opt(first_paraAttrs) ~ rep1(bullet(0, false) | bullet(0, true) | valid) <~ guard(closingTag(tag)) ^^ {
+            case td ~ fp => Paragraph(reduceCharBlocks(fp), td.map(_.attrs) getOrElse(Nil))
+          }
+        case Some((tag, last)) =>
+          // a paragraph before the closing tag (ends with blank line, must not include </tag>)
+          val valid = not(closingTag(tag)) ~> not(blankLine) ~> lineElem
+          opt(first_paraAttrs) ~ rep1(bullet(0, false) | bullet(0, true) | valid) ~ blankLine ^^ {
+            case td ~ fp ~ _ => Paragraph(reduceCharBlocks(fp), td.map(_.attrs) getOrElse(Nil))
+          }
+        case _ =>
+          // regular paragraph
+          opt(first_paraAttrs) ~ rep1(bullet(0, false) | bullet(0, true) | not_blank_line) ~ blankLine ^^ {
+            case td ~ fp ~ _ => Paragraph(reduceCharBlocks(fp), td.map(_.attrs) getOrElse(Nil))
+          }
+      }
     }
 
     lazy val table_attribute = para_attribute | row_span | col_span
@@ -759,8 +777,9 @@ object TextileParser {
     def table_element(isHeader : Boolean) : Parser[Textile] = opt(row_def) ~ (rep(not(accept('|') | '\n') ~> lineElem) <~ '|') ^^ {
       case td ~ el => TableElement(reduceCharBlocks(el), isHeader, td.map(_.attrs) getOrElse Nil)}
 
-    lazy val paragraph : Parser[Textile] =
-    preBlock | divBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | div | blankPara | normPara
+    def paragraph(endTag: Option[(String, Boolean)]) : Parser[Textile] =
+    preBlock | divBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | div | blankPara | normPara(endTag)
+    lazy val paragraph : Parser[Textile] = paragraph(None)
   }
 
 

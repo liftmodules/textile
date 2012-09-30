@@ -75,7 +75,7 @@ how are you?
                     </div>)
     }
 
-    "embed text with double-\\n at the end of div elements" in {
+    "embed text (with double-\\n at the end) of div elements" in {
       toHtml("""<div>
 bq[de]. hello
 how are you?
@@ -92,10 +92,34 @@ fine
                     </div>)
     }
 
-    "embed images (plus double-\\n) in div elements" in {
+    "embed text (with single-\\n at the end) of div elements" in {
+      toHtml("""<div>
+bq[de]. hello
+how are you?
+
+* foo
+* irks
+
+fine
+</div>""") must ==/(<div>
+                      <blockquote lang="de"><p>hello<br/>how are you?</p></blockquote>
+                      <ul><li>foo</li><li>irks</li></ul>
+                      <p>fine</p>
+                    </div>)
+    }
+
+    "embed images (plus double-\\n at the end) in div elements" in {
       toHtml("""<div>
 !test.jpg!
 
+</div>""") must ==/(<div>
+                      <p><img src="test.jpg" alt=""/></p>
+                    </div>)
+    }
+
+    "embed images (with single-\\n at the end) in div elements" in {
+      toHtml("""<div>
+!test.jpg!
 </div>""") must ==/(<div>
                       <p><img src="test.jpg" alt=""/></p>
                     </div>)
