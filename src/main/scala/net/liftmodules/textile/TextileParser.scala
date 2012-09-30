@@ -458,6 +458,17 @@ object TextileParser {
     }
 
     /**
+     * a &lt;div&gt; block.  Process body normally.
+     */
+    lazy val divBlock: Parser[Textile] = {
+      beginlS ~> accept("<div") ~> rep(tag_attr) ~ (rep(' ') ~> '>' ~> rep(preEndOfLine | ' ') ~>
+      rep(not(accept("</div")) ~> (paragraph))) <~
+      closingTag("div") <~ rep(' ') <~ '\n' ^^ {
+        case attrs ~ elms => Div(reduceCharBlocks(elms), attrs.filter(validHtmlAttr("div", _)))
+      }
+    }
+
+    /**
      * (c)
      */
     lazy val copyright: Parser[Textile] =
@@ -749,7 +760,7 @@ object TextileParser {
       case td ~ el => TableElement(reduceCharBlocks(el), isHeader, td.map(_.attrs) getOrElse Nil)}
 
     lazy val paragraph : Parser[Textile] =
-    preBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | div | blankPara | normPara
+    preBlock | divBlock | footnote | table | bullet(0, false) | bullet(0, true) | blockquote | blockCode | head_line | div | blankPara | normPara
   }
 
 
@@ -998,7 +1009,7 @@ object TextileParser {
   }
 
   private val validAttributes = Set("title", "lang")
-  private val attrExtensions = Map("code" -> Set("class"), "pre" -> Set("class"))
+  private val attrExtensions = Map("code" -> Set("class"), "pre" -> Set("class"), "div" -> Set("class"))
   private def validHtmlAttr(tag: String, in: Attribute): Boolean = in match {
     case AnyAttribute(name, _) => validAttributes.contains(name) || attrExtensions.contains(tag) && attrExtensions(tag).contains(name)
     case _ => false

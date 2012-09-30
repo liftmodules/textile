@@ -48,10 +48,10 @@ class TextileSpec extends Specification {
 
       val res = toHtml(div)
 
-      res must ==/(<p><div>
-   <div>Joe Doe</div>
-   <div>The Example Company</div>
-   <div>604-555-1234</div>
+      res must ==/(<p><div class="vcard">
+   <div class="fn">Joe Doe</div>
+   <div class="org">The Example Company</div>
+   <div class="tel">604-555-1234</div>
    <a href="http://example.com/">http://example.com/</a>
  </div></p>)
     }
