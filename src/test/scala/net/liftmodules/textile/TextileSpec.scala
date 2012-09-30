@@ -40,20 +40,20 @@ class TextileSpec extends Specification {
     "deal with multi-line div" in {
       val div =
 """<div class="vcard">
-   <div class="fn">Joe Doe</div>
-   <div class="org">The Example Company</div>
-   <div class="tel">604-555-1234</div>
-   http://example.com/
- </div>"""
+<div class="fn">Joe Doe</div>
+<div class="org">The Example Company</div>
+<div class="tel">604-555-1234</div>
+http://example.com/
+</div>"""
 
       val res = toHtml(div)
 
-      res must ==/(<p><div>
-   <div>Joe Doe</div>
-   <div>The Example Company</div>
-   <div>604-555-1234</div>
-   <a href="http://example.com/">http://example.com/</a>
- </div></p>)
+      res must ==/(<div class="vcard">
+   <div class="fn"><p>Joe Doe</p></div>
+   <div class="org"><p>The Example Company</p></div>
+   <div class="tel"><p>604-555-1234</p></div>
+   <p><a href="http://example.com/">http://example.com/</a></p>
+ </div>)
     }
 
 
@@ -74,6 +74,10 @@ class TextileSpec extends Specification {
       toHtml("bq bw be") must ==/(<p>bq bw be</p>)
     }
 
+    "deal with divs" in {
+      toHtml("div[de](pull-left). foo\nbar\n\npara") must ==/(<div class="pull-left" lang="de">foo<br />bar</div> ++ <p>para</p>)
+    }
+
     "deal with preformatted blocks" in {
       toHtml("<pre>\n  foo\n  bar\n</pre>") must ==/(<pre>{"\n foo\n  bar\n"}</pre>)
     }
@@ -81,6 +85,22 @@ class TextileSpec extends Specification {
     "deal with preformatted blocks with attributes" in {
       toHtml("<pre class='foo'>foo bar</pre>") must ==/(<pre class="foo">foo bar</pre>)
       toHtml("<pre onclick='runXss()'>foo bar</pre>") must ==/(<pre>foo bar</pre>)
+    }
+
+    "deal with classes" in {
+      toHtml("p(foo). bar") must ==/(<p class="foo">bar</p>)
+      toHtml("p(foo bar). bar") must ==/(<p class="foo bar">bar</p>)
+    }
+
+    "deal with styles" in {
+      toHtml("p{color:red;}. bar") must ==/(<p style="color:red;">bar</p>)
+      toHtml("p{color:red}. bar") must ==/(<p style="color:red;">bar</p>)
+      toHtml("p{font-weight:bold;color:yellow;}. bar") must ==/(<p style="font-weight:bold;color:yellow;">bar</p>)
+      toHtml("p{font-weight:bold; border: 1px solid black}. bar") must ==/(<p style="font-weight:bold; border: 1px solid black;">bar</p>)
+    }
+
+    "deal with languages" in {
+      toHtml("p[de]. bar") must ==/(<p lang="de">bar</p>)
     }
 
     "deal with short blocks of code" in {
@@ -199,7 +219,7 @@ A regular example.
     "deal with a very long line of text" in {
       val sb = new StringBuilder()
       (1 to 10000).foreach(i => sb.append(i.toString+" "))
-      toHtml(sb.toString)
+      toHtml(sb.toString) must ==/(<p>{sb.toString}</p>)
     }
 
     "h3" in {
@@ -212,6 +232,18 @@ A regular example.
 
     "Single line delete " in {
       toHtml("This contains -deleted stuff-") must ==/(<p>This contains <del>deleted stuff</del></p>)
+    }
+
+    "1 bullet" in {
+      val it = toHtml(
+        """
+* Hello
+""")
+
+      it must ==/(
+        <ul><li> Hello</li>
+        </ul>
+      )
     }
 
     "3 bullets" in {
@@ -242,6 +274,24 @@ A regular example.
         <ul><li> <strong>Hello</strong> moo</li>
         <li> Dude</li>
         <li> Dog</li>
+        </ul>
+      )
+    }
+
+    "4 bullets with args" in {
+      val it = toHtml(
+        """
+*[de] *Hello* moo
+*(span6) Dude
+* Dog
+*{color:red;} foo
+""")
+
+      it must ==/(
+        <ul><li lang="de"> <strong>Hello</strong> moo</li>
+        <li class="span6"> Dude</li>
+        <li> Dog</li>
+        <li style="color:red;"> foo</li>
         </ul>
       )
     }
