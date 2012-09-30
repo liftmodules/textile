@@ -234,6 +234,18 @@ A regular example.
       toHtml("This contains -deleted stuff-") must ==/(<p>This contains <del>deleted stuff</del></p>)
     }
 
+    "1 bullet" in {
+      val it = toHtml(
+        """
+* Hello
+""")
+
+      it must ==/(
+        <ul><li> Hello</li>
+        </ul>
+      )
+    }
+
     "3 bullets" in {
       val it = toHtml(
         """
@@ -262,6 +274,24 @@ A regular example.
         <ul><li> <strong>Hello</strong> moo</li>
         <li> Dude</li>
         <li> Dog</li>
+        </ul>
+      )
+    }
+
+    "4 bullets with args" in {
+      val it = toHtml(
+        """
+*[de] *Hello* moo
+*(span6) Dude
+* Dog
+*{color:red;} foo
+""")
+
+      it must ==/(
+        <ul><li lang="de"> <strong>Hello</strong> moo</li>
+        <li class="span6"> Dude</li>
+        <li> Dog</li>
+        <li style="color:red;"> foo</li>
         </ul>
       )
     }

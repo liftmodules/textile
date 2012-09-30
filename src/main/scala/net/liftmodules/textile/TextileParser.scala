@@ -561,12 +561,12 @@ object TextileParser {
       val oneBullet = if (numbered) accept('#') else accept('*')
 
       def bullet_line(depth : Int, numbered : Boolean): Parser[Textile] =
-      beginlS ~> repN(depth+1, oneBullet) ~> rep(not('\n') ~>
-                                                 lineElem) <~ '\n' ^^
-      {case elms => BulletLine(reduceCharBlocks(elms), Nil)}
+      beginlS ~> repN(depth+1, oneBullet) ~> rep(para_attribute) ~ (guard(' ') ~> rep(not('\n') ~>
+                                                 lineElem)) <~ '\n' ^^
+      {case attrs ~ elms => BulletLine(reduceCharBlocks(elms), attrs)}
 
       bullet_line(depth, numbered) ~
-      (rep1(bullet(depth + 1, numbered) | bullet_line(depth, numbered))) ^^
+      (rep(bullet(depth + 1, numbered) | bullet_line(depth, numbered))) ^^
       {case fbl ~ abl => Bullet(fbl :: abl, numbered)}
     }
 
