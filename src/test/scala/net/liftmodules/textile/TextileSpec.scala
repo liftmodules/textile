@@ -17,12 +17,10 @@
 package net.liftmodules
 package textile
 
-import xml._
 
 import org.specs.Specification
 
 import net.liftweb._
-import common._
 import util._
 
 
@@ -280,9 +278,64 @@ I Like Yaks
       )
     }
 
+      "convert a single two-bullet-line to a sub list" in {
+        val it = toHtml(
+          """
+* Bullet
+** SubBullet
+          """)
+
+        it must ==/(
+          <ul>
+            <li>Bullet</li>
+            <ul>
+              <li>SubBullet</li>
+            </ul>
+          </ul>)
+      }
+
     "a link http://yahoo.com not inside" in {
       toHtml("a link http://yahoo.com not inside", true).toString.trim must_== "<p>a link http://yahoo.com not inside</p>"
     }
+
+    "correctly insert link at the end of a line" in {
+
+      val it = toHtml(
+        """
+Some text ending with a "link":linkRef.
+[linkRef]http://lift.la
+        """)
+
+      it must ==/(<p>Some text ending with a
+        <a href="http://lift.la">link</a>
+        .
+        <br></br>
+      </p>)
+
+    }
+
+
+    "dont use break lines for defined a_ref elements" in {
+
+      val it = toHtml(
+        """
+[linkRef]http://lift.la
+[linkRef2]http://lift.la
+[linkRef3]http://lift.la
+[linkRef4]http://lift.la
+One "link":linkRef.
+Two "link":linkRef2.
+Three "link":linkRef3.
+Four "link":linkRef4.
+        """)
+
+      it must ==/(<p>One <a href="http://lift.la">link</a>.
+        <br></br>Two <a href="http://lift.la">link</a>.
+        <br></br>Three <a href="http://lift.la">link</a>.
+        <br></br>Four <a href="http://lift.la">link</a>.</p>)
+
+    }
+
 
   }
 
