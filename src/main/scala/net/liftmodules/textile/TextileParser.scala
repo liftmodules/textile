@@ -386,11 +386,14 @@ object TextileParser {
 
     lazy val urlStr = (rep1(elem("", validUrlChar))^^ mkString)
 
+    //Used for the reference identifier.
+    lazy val refStr = (rep1(elem("", validRefChar))^^ mkString)
+
     /**
      * "reference":reference
      */
     lazy val quote_ref: Parser[Textile] =
-    ('"' ~> rep(attribute) ~ chrsExcept('"', '\n') <~ '"') ~ (':' ~> urlStr) ^^
+    ('"' ~> rep(attribute) ~ chrsExcept('"', '\n') <~ '"') ~ (':' ~> refStr) ^^
     {case attr ~ fs ~ rc => RefAnchor(Nil, rc, fs, attr)}
 
 
@@ -408,7 +411,7 @@ object TextileParser {
      * [reference]:http://reference.com
      */
 
-    lazy val a_ref: Parser[Textile] = ('[' ~> urlStr <~ ']') ~ url ^^ {case  fr ~ (url: Anchor) => ARef(fr, url.href) }
+    lazy val a_ref: Parser[Textile] = ('[' ~> urlStr <~ ']') ~ url <~ endOfLine ^^ {case  fr ~ (url: Anchor) => ARef(fr, url.href) }
 
     /**
      * http://google.com
@@ -424,6 +427,15 @@ object TextileParser {
       c == '-' || c == ':' || c == '_'
     }
 
+    /**
+     * a valid character in a reference to a URL. It does not contain characters normally
+     * used to end sentences e.g. '.' or '?'
+     */
+    def validRefChar(c : Char) : Boolean = {
+      Character.isLetterOrDigit(c) || c == '/' || c == '%' || c == '&' || c == '#' ||
+        c == '$' || c == '=' ||
+        c == '-' || c == ':' || c == '_'
+    }
 
     /**
      * an EOL character
@@ -546,17 +558,24 @@ object TextileParser {
     lazy val single_quote: Parser[Textile] = '\'' ^^^ SingleQuote
 
 
-    def bullet(depth : Int, numbered : Boolean): Parser[Textile] = {
+    def bullet(depth: Int, numbered: Boolean): Parser[Textile] = {
       val oneBullet = if (numbered) accept('#') else accept('*')
 
-      def bullet_line(depth : Int, numbered : Boolean): Parser[Textile] =
-      beginlS ~> repN(depth+1, oneBullet) ~> rep(not('\n') ~>
-                                                 lineElem) <~ '\n' ^^
-      {case elms => BulletLine(reduceCharBlocks(elms), Nil)}
+      def bullet_line(depth: Int): Parser[Textile] =
+        beginlS ~> repN(depth + 1, oneBullet) ~> rep(not('\n') ~> lineElem) <~ '\n' ^^ {
+          case elms => BulletLine(reduceCharBlocks(elms), Nil)
+        }
 
-      bullet_line(depth, numbered) ~
-      (rep1(bullet(depth + 1, numbered) | bullet_line(depth, numbered))) ^^
-      {case fbl ~ abl => Bullet(fbl :: abl, numbered)}
+      bullet_line(depth) ~
+        (if (depth > 0)
+          //If we are already inside a list, it is not necessary to have more than one line
+          (rep(bullet(depth + 1, numbered) | bullet_line(depth)))
+        else
+          //If we are at the absolute beginning, it is necessary to have more than one bullet, since, it will otherwise
+          // conflict with the bold/strong functionality
+          (rep1(bullet(depth + 1, numbered) | bullet_line(depth)))) ^^ {
+        case fbl ~ abl => Bullet(fbl :: abl, numbered)
+      }
     }
 
     def isStartPunct(c: Char) = str2chars(".,\"'?!;:").contains(c)
