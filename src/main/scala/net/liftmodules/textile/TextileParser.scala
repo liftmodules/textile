@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2010 WorldWide Conferencing, LLC
+ * Copyright 2006-2013 WorldWide Conferencing, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -918,7 +918,8 @@ object TextileParser {
 
   case class Image(url : String, alt : String, link : String, attrs : List[Attribute] ) extends ATextile(Nil, attrs) {
     override def toHtml : NodeSeq = {
-      val img = XmlElem(null, "img", fromStyle(AnyAttribute("src", url) :: AnyAttribute("alt", alt) :: attrs), TopScope, Nil : _*)
+      val children : List[scala.xml.Node] = Nil
+      val img = XmlElem(null, "img", fromStyle(AnyAttribute("src", url) :: AnyAttribute("alt", alt) :: attrs), TopScope, children : _*)
 
       if (link ne null) XmlElem(null, "a", fromStyle(AnyAttribute("href", link) :: attrs), TopScope, img : _*)
       else img

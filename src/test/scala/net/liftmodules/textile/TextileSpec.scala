@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2011 WorldWide Conferencing, LLC
+ * Copyright 2008-2013 WorldWide Conferencing, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,7 @@
 package net.liftmodules
 package textile
 
-
-import org.specs.Specification
+import org.specs2.mutable._
 
 import net.liftweb._
 import util._
@@ -197,7 +196,7 @@ A regular example.
     "deal with a very long line of text" in {
       val sb = new StringBuilder()
       (1 to 10000).foreach(i => sb.append(i.toString+" "))
-      toHtml(sb.toString)
+      toHtml(sb.toString) must beAnInstanceOf[scala.xml.NodeSeq]
     }
 
     "h3" in {
@@ -606,13 +605,5 @@ We use CSS(Cascading Style Sheets).
 
       time must be_< (if (shouldRelax) 10000L else 3000L)
     }
-
-
-  """Hello:
-* THis is a * on a line
-* This is a *strong* line
-* This is a **Bold** line
-* This is a line with no markup
-"""
 
 }
