@@ -146,8 +146,8 @@ object TextileParser {
 
   /** <p>
    *    <code>OffsetPosition</code> is a standard class for positions
-   *    represented as offsets into a source ``document''.
-   *    @param source   The source document
+   *    represented as offsets into a source `document`.
+   @param source   The source document
    *    @param offset   The offset indicating the position
    *
    * @author Martin Odersky
@@ -168,10 +168,8 @@ object TextileParser {
     /** The column number referred to by the position; column numbers start at 1 */
     lazy val column: Int = offset - index(line - 1) + 1
 
-    /** The contents of the line numbered `lnum' (must not contain a new-line character).
-     *
-     * @param lnum a 1-based integer index into the `document'
-     * @return the line at `lnum' (not including a newline)
+    /** The contents of the line numbered `line` (must not contain a new-line character).
+     * @return the line at `line` (not including a newline)
      */
     def lineContents: String =
     source.subSequence(index(line - 1), index(line)).toString
@@ -182,9 +180,9 @@ object TextileParser {
     /** Compare this position to another, by first comparing their line numbers,
      * and then -- if necessary -- using the columns to break a tie.
      *
-     * @param `that' a `Position' to compare to this `Position'
+     * @param `that` a `Position` to compare to this `Position`
      * @return true if this position's line or (in case of a tie wrt. line numbers)
-     *         its column is smaller than the corresponding components of `that'
+     *         its column is smaller than the corresponding components of `that`
      */
     override def <(that: Position) = that match {
       case OffsetPosition(_, that_offset) =>
@@ -374,13 +372,14 @@ object TextileParser {
 
     lazy val noCatCamelUrl: Parser[Textile] =
     camelizedWord ~ rep1(camelizedWord) ^^
-    { case c ~ cs => val ss = mkString((c :: cs).map(_.s));
+    { case c ~ cs =>
+        val ss = mkString((c :: cs).map(_.s))
         WikiAnchor(ss, None, wikiUrlFunc)}
 
     lazy val catCamelUrl: Parser[Textile] =
     lowerWord ~ ':' ~ camelizedWord ~ rep1(camelizedWord) ^^ {
       case cat ~ colon ~ c ~ cs =>
-        val ss = mkString((c :: cs).map(_.s));
+        val ss = mkString((c :: cs).map(_.s))
         WikiAnchor(ss, Some(cat), wikiUrlFunc)}
 
 
@@ -621,8 +620,7 @@ object TextileParser {
     lazy val attribute = style | class_id | the_class | the_id | the_lang
 
     lazy val para_attribute = attribute | fill_align | left_align |
-    right_align |
-    center_align | top_align | bottom_align | em_left | em_right;
+    right_align | center_align | top_align | bottom_align | em_left | em_right
 
     lazy val left_align : Parser[Attribute] = elem('<') ^^ Align
 
@@ -828,12 +826,12 @@ object TextileParser {
     def name(which : Int) : String = "style"
     def value(which : Int) : String = {
       align match {
-        case '<' => "text-align:left";
-        case '>' => "text-align:right";
-        case '=' => "text-align:center";
-        case '^' => "vertical-align:top";
-        case '~' => "vertical-align:bottom";
-        case 'f' | 'j' => "text-align:justify";
+        case '<' => "text-align:left"
+        case '>' => "text-align:right"
+        case '=' => "text-align:center"
+        case '^' => "vertical-align:top"
+        case '~' => "vertical-align:bottom"
+        case 'f' | 'j' => "text-align:justify"
 
       }
     }
@@ -906,22 +904,22 @@ object TextileParser {
 
   case class Paragraph(elems : List[Textile], attrs: List[Attribute]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, "p", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+      XmlElem(null, "p", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
     }
 
   }
 
   case class Acronym(thing : String, acro : String) extends ATextile(Nil, Nil) {
     override def toHtml : NodeSeq =
-    XmlElem(null, "acronym", fromStyle(AnyAttribute("title", acro) :: Nil), TopScope, Text(thing) : _*)
+    XmlElem(null, "acronym", fromStyle(AnyAttribute("title", acro) :: Nil), TopScope, false, Text(thing) : _*)
   }
 
   case class Image(url : String, alt : String, link : String, attrs : List[Attribute] ) extends ATextile(Nil, attrs) {
     override def toHtml : NodeSeq = {
       val children : List[scala.xml.Node] = Nil
-      val img = XmlElem(null, "img", fromStyle(AnyAttribute("src", url) :: AnyAttribute("alt", alt) :: attrs), TopScope, children : _*)
+      val img = XmlElem(null, "img", fromStyle(AnyAttribute("src", url) :: AnyAttribute("alt", alt) :: attrs), TopScope, false, children : _*)
 
-      if (link ne null) XmlElem(null, "a", fromStyle(AnyAttribute("href", link) :: attrs), TopScope, img : _*)
+      if (link ne null) XmlElem(null, "a", fromStyle(AnyAttribute("href", link) :: attrs), TopScope, false, img : _*)
       else img
     }
   }
@@ -984,15 +982,17 @@ object TextileParser {
   }
 
   case class Header(what : Int, elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
-    override def toHtml : NodeSeq =
-    XmlElem(null, "h"+what, fromStyle(attrs), TopScope, super.toHtml : _*) ++
-    Text("\n")
+    override def toHtml : NodeSeq = {
+      val s = super.toHtml
+      XmlElem(null, "h"+what, fromStyle(attrs), TopScope, s.isEmpty, s : _*) ++ Text("\n")
+    }
   }
 
   case class BlockQuote(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      val par : NodeSeq = XmlElem(null, "p", Null, TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
-      XmlElem(null, "blockquote", fromStyle(attrs), TopScope, par : _*)  ++ Text("\n")
+      val flat = flattenAndDropLastEOL(elems)
+      val par : NodeSeq = XmlElem(null, "p", Null, TopScope, flat.isEmpty, flat : _*) ++ Text("\n")
+      XmlElem(null, "blockquote", fromStyle(attrs), TopScope, par.isEmpty, par : _*)  ++ Text("\n")
     }
   }
 
@@ -1000,8 +1000,8 @@ object TextileParser {
     override def toHtml : NodeSeq = {
       val attributes = fromStyle(attrs)
       val contents = flattenAndDropLastEOL(elems)
-      val code = XmlElem(null, "code", attributes, TopScope, contents : _*)
-      XmlElem(null, "pre", attributes, TopScope, code : _*) ++ Text("\n")
+      val code = XmlElem(null, "code", attributes, TopScope, contents.isEmpty, contents : _*)
+      XmlElem(null, "pre", attributes, TopScope, code.isEmpty, code : _*) ++ Text("\n")
     }
   }
 
@@ -1014,14 +1014,15 @@ object TextileParser {
 
   case class HTML(tag : String, elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, tag, fromStyle(attrs.filter(validHtmlAttr(tag, _))), TopScope, flattenAndDropLastEOL(elems) : _*)
+      val flat = flattenAndDropLastEOL(elems)
+      XmlElem(null, tag, fromStyle(attrs.filter(validHtmlAttr(tag, _))), TopScope, flat.isEmpty, flat : _*)
     }
   }
 
   case class FootnoteDef(num : String) extends ATextile(null, Nil) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, "sup", Null, TopScope,
-              XmlElem(null, "a", fromStyle(List(AnyAttribute("href", "#fn"+num))), TopScope, Text(num) : _*) : _*)
+      val a = XmlElem(null, "a", fromStyle(List(AnyAttribute("href", "#fn"+num))), TopScope, false, Text(num) : _*)
+      XmlElem(null, "sup", Null, TopScope, a.isEmpty, a : _*)
     }
   }
 
@@ -1029,8 +1030,8 @@ object TextileParser {
 
   case class Footnote(elems : List[Textile], attrs : List[Attribute], num : String) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, "p", fromStyle(AnyAttribute("id", "fn"+num) :: attrs), TopScope,
-              (XmlElem(null, "sup", Null, TopScope, Text(num) : _*) :: flattenAndDropLastEOL(elems)) : _*) ++ Text("\n")
+      XmlElem(null, "p", fromStyle(AnyAttribute("id", "fn"+num) :: attrs), TopScope, false,
+              (XmlElem(null, "sup", Null, TopScope, false, Text(num) : _*) :: flattenAndDropLastEOL(elems)) : _*) ++ Text("\n")
     }
   }
 
@@ -1039,7 +1040,7 @@ object TextileParser {
   ATextile(elems, attrs) {
     override def toHtml : NodeSeq =
     flattenAndDropLastEOL(first) :::
-    XmlElem(null, "em", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ::
+    XmlElem(null, "em", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ::
     flattenAndDropLastEOL(last)
 
   }
@@ -1047,7 +1048,7 @@ object TextileParser {
                     attrs : List[Attribute], last:List[Textile]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
       flattenAndDropLastEOL(first) :::
-      XmlElem(null, "strong", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ::
+      XmlElem(null, "strong", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ::
       flattenAndDropLastEOL(last)
     }
   }
@@ -1058,13 +1059,13 @@ object TextileParser {
 
   case class Table(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, "table", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+      XmlElem(null, "table", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
     }
   }
 
   case class TableRow(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, "tr", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+      XmlElem(null, "tr", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
     }
   }
 
@@ -1073,6 +1074,7 @@ object TextileParser {
       XmlElem(null,
               if (isHeader) "th" else "td", fromStyle(attrs),
               TopScope,
+              false,
               (if (elems == Nil) <xml:group>&nbsp;</xml:group> else
                flattenAndDropLastEOL(elems)) : _*) ++ Text("\n")
     }
@@ -1080,13 +1082,13 @@ object TextileParser {
 
   case class Bullet(elems : List[Textile], numbered : Boolean) extends ATextile(elems, Nil) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, if (numbered) "ol" else "ul", fromStyle(Nil), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+      XmlElem(null, if (numbered) "ol" else "ul", fromStyle(Nil), TopScope, false, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
     }
   }
 
   case class BulletLine(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
-      XmlElem(null, "li", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+      XmlElem(null, "li", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
     }
   }
 
@@ -1098,7 +1100,7 @@ object TextileParser {
   case class Special(tag: String, first: List[Textile], elems : List[Textile], attrs : List[Attribute], last:List[Textile]) extends ATextile(elems, attrs) {
     override def toHtml : NodeSeq = {
       flattenAndDropLastEOL(first) :::
-      XmlElem(null, tag, fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ::
+      XmlElem(null, tag, fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ::
       flattenAndDropLastEOL(last)
     }
   }
@@ -1107,19 +1109,19 @@ object TextileParser {
                   attrs : List[Attribute], last:List[Textile]) extends ATextile(elems, attrs){
     override def toHtml : NodeSeq =
     flattenAndDropLastEOL(first) :::
-    XmlElem(null, "cite", fromStyle(attrs), TopScope, flattenAndDropLastEOL(elems) : _*) ::
+    XmlElem(null, "cite", fromStyle(attrs), TopScope, false, flattenAndDropLastEOL(elems) : _*) ::
     flattenAndDropLastEOL(last)
 
   }
 
   case class Pre(elems : List[Textile], attrs : List[Attribute]) extends ATextile(elems, attrs) {
-    override def toHtml : NodeSeq = XmlElem(null, "pre", fromStyle(attrs.filter(validHtmlAttr("pre", _))), TopScope, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
+    override def toHtml : NodeSeq = XmlElem(null, "pre", fromStyle(attrs.filter(validHtmlAttr("pre", _))), TopScope, false, flattenAndDropLastEOL(elems) : _*) ++ Text("\n")
   }
 
   case class Anchor(elems : List[Textile], href : String, alt : String, attrs : List[Attribute], disableLinks: Boolean) extends ATextile(elems, attrs) {
     def allAttrs = AnyAttribute("href", href) :: attrs
     override def toHtml : NodeSeq = if (disableLinks) Text(alt) else
-    XmlElem(null, "a", fromStyle(allAttrs), TopScope, Text(alt) : _*)
+    XmlElem(null, "a", fromStyle(allAttrs), TopScope, false, Text(alt) : _*)
   }
 
   case class RefAnchor(elems : List[Textile], ref : String, alt : String, attrs : List[Attribute]) extends ATextile(elems, attrs) {
@@ -1128,7 +1130,7 @@ object TextileParser {
     def href_=(i : String) {_href = i}
 
     def allAttrs = {AnyAttribute("href", _href) :: attrs }
-    override def toHtml : NodeSeq = XmlElem(null, "a", fromStyle(allAttrs), TopScope, Text(alt) : _*)
+    override def toHtml : NodeSeq = XmlElem(null, "a", fromStyle(allAttrs), TopScope, false, Text(alt) : _*)
   }
 
   case class ARef( name : String, href : String) extends ATextile(Nil, Nil) {
