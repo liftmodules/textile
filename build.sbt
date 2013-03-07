@@ -2,9 +2,9 @@ name := "textile"
 
 organization := "net.liftmodules"
 
-liftVersion <<= liftVersion ?? "2.5-SNAPSHOT"
+liftVersion <<= liftVersion ?? "2.5-RC2"
 
-version <<= liftVersion apply { _ + "-1.3-SNAPSHOT" }
+version <<= liftVersion apply { _ + "-1.3" }
  
 scalaVersion := "2.10.0"
  
