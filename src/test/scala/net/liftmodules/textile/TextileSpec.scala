@@ -18,12 +18,13 @@ package net.liftmodules
 package textile
 
 import org.specs2.mutable._
+import org.specs2.matcher._
 
 import net.liftweb._
 import util._
 
 
-class TextileSpec extends Specification {
+class TextileSpec extends Specification with XmlMatchers{
 
   val shouldRelax = (java.lang.Boolean.getBoolean("textile.relax"))
 
