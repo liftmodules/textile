@@ -2,19 +2,19 @@ name := "textile"
 
 organization := "net.liftmodules"
 
-version := "1.3-SNAPSHOT"
+version := "1.4-SNAPSHOT"
 
-liftVersion <<= liftVersion ?? "2.6-SNAPSHOT"
+liftVersion <<= liftVersion ?? "3.1.1"
 
 liftEdition <<= liftVersion apply { _.substring(0,3) }
 
 moduleName <<= (name, liftEdition) { (n, e) =>  n + "_" + e }
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.12.2"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-crossScalaVersions := Seq("2.11.1", "2.10.0", "2.9.2", "2.9.1-1", "2.9.1")
+crossScalaVersions := Seq("2.12.2", "2.11.1", "2.10.0", "2.9.2", "2.9.1-1", "2.9.1")
 
 resolvers += "CB Central Mirror" at "http://repo.cloudbees.com/content/groups/public"
 
@@ -29,7 +29,10 @@ libraryDependencies <++= scalaVersion { sv =>
   sv match {
     case "2.9.2" | "2.9.1" | "2.9.1-1" => "org.specs2" %% "specs2" % "1.12.3" % "test" :: Nil
     case "2.11.0" | "2.11.1" =>   "org.specs2" %% "specs2" % "2.3.12" % "test" ::  Nil
-    case _ => "org.specs2" %% "specs2" % "1.13" % "test" :: Nil
+		case _ => {
+      "org.specs2" %% "specs2-core" % "3.8.6" % "test" :: Nil
+      "org.specs2" %% "specs2-matcher-extra" % "3.8.6" % "test" :: Nil
+    }
   }  
 }
 
@@ -37,7 +40,7 @@ publishTo <<= version { _.endsWith("SNAPSHOT") match {
  	case true  => Some("snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")
  	case false => Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
   }
- }
+}
 
 
 // For local deployment:
